@@ -1,0 +1,107 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{listings} % For including Python code
+\usepackage{xcolor}
+\usepackage{cite}
+\usepackage{url}
+
+% --- Code Listing Settings ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{python}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=python}
+
+% --- JSON Language Definition ---
+% We define how to parse JSON, but let it inherit your 'mystyle' formatting!
+\colorlet{punct}{red!60!black}
+\definecolor{delim}{RGB}{20,105,176}
+\colorlet{numb}{magenta!60!black}
+
+\lstdefinelanguage{json}{
+    showstringspaces=false,
+    breaklines=true,
+    string=[s]{"}{"},
+    stringstyle=\color{codepurple}, % Reuses your Python string color!
+    comment=[l]{:},
+    commentstyle=\color{delim}, % Colors the colons
+    literate=
+     *{0}{{{\color{numb}0}}}{1}
+      {1}{{{\color{numb}1}}}{1}
+      {2}{{{\color{numb}2}}}{1}
+      {3}{{{\color{numb}3}}}{1}
+      {4}{{{\color{numb}4}}}{1}
+      {5}{{{\color{numb}5}}}{1}
+      {6}{{{\color{numb}6}}}{1}
+      {7}{{{\color{numb}7}}}{1}
+      {8}{{{\color{numb}8}}}{1}
+      {9}{{{\color{numb}9}}}{1}
+      {\{}{{{\color{delim}{\{}}}}{1}
+      {\}}{{{\color{delim}{\}}}}}{1}
+      {[}{{{\color{delim}{[}}}}{1}
+      {]}{{{\color{delim}{]}}}}{1}
+}
+
+\newcommand{\course}{16:332:509 Convex Optimization}
+\newcommand{\assignment}{Project Proposal}
+\newcommand{\name}{Jeff Barner \& Thomas Trieu}
+\newcommand{\datefixed}{\today} 
+\newcommand{\realspace}{\mathbb{R}}
+\newcommand{\intspace}{\mathbb{Z}}
+\newcommand{\norm}[1]{\left|\left|#1\right|\right|}
+\newcommand{\mtx}[1]{\mathbf{#1}}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\psd}[1]{\mathbb{S}^{#1}_{+}}
+\newcommand{\tenpow}[1]{\times 10^{#1}}
+
+\title{\textbf{\course} \\ \assignment}
+\author{\name}
+\date{\datefixed}
+
+\begin{document}
+
+\maketitle
+
+The team is comprised of Jeff Barner and Thomas Trieu.
+Jeff Barner will be the primary software developer.
+Thomas Trieu will be the primary researcher and writer, as well as the POC for the team.
+
+The project is entitled "Feasibility of Stochastic Optimization Methods for Model Predictive Control of an Electromagnetic Suspension System".
+
+Model Predictive Control (MPC) allows for more robust stabilization of the Electromagnetic Suspension (EMS) under more challenging conditions and constraints than conventional linearized models. As high-speed trains get faster, the unpredictable nature of the real world can introduce enough uncertainty that threatens the safety of the passengers. Stochastic optimization methods provide resilience to unpredictable scenarios in such applications. We want to analyze the feasibility of such stochastic model predictive controllers (SMPC) in the context of EMS systems.
+
+The project will begin with a survey of stochastic optimization methods and their applicability to the optimization step of a MPC scheme for an EMS system. The team will then choose a candidate method based on the convergence time criteria required for practical applications of a safety control system for an EMS system. The team will implement the candidate optimization method and perform convergence time experiments to assess the feasibility of the implementation from a practical perspective. Time permitting, the team will incorporate the SMPC into Simulink to evaluate controller performance against established baselines.
+
+We will start with \cite{zhu_2024} to provide an understanding of control methods for EMS systems.
+We then move onto \cite{zhang_2020} and \cite{kargl2026embeddedmodelpredictivecontrol} for a specific look at the implementation of the MPC for EMS systems.
+Referencing the SMPC surveys \cite{smpcSurvey1, smpcSurvey2, smpcSurvey3}, we will assess each method’s practical feasibility when implemented in an EMS system.
+
+The success criteria for the project is a successful implementation of the candidate stochastic optimization method and the completion of the convergence time experiments to provide a definitive feasibility assessment for the EMS use-case.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}
