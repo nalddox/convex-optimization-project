@@ -87,19 +87,25 @@
 \section*{Abstract}
 
 \section{Introduction}
-The pursuit of high-speed, frictionless ground transportation has positioned Electromagnetic Suspension (EMS) systems as a cornerstone of modern Maglev technology.
-By utilizing attractive magnetic forces to counteract gravity, EMS systems enable vehicles to "levitate" without physical contact, significantly reducing mechanical wear and energy dissipation.
-However, maintaining a stable air gap between the electromagnet and the guideway presents a formidable control challenge.
+Control systems are increasingly moving towards complex and uncertain environments.
+Model Predictive Control (MPC) is the standard for constrained systems, but its standard deterministic form lacks a formal mechanism to handle perturbations.
+Tube-Based Stochastic MPC (SMPC) represents a sophisticated evolution, providing a framework for maintaining stability within a defined "tube" of trajectories.
 
-\subsection{Challenge}
-The inherent dynamics of an EMS system are non-linear, open-loop unstable, and highly sensitive to external perturbations.
-Traditional implementations of the controller linearize the non-linear system around a specified equilibrium point.
-However, these implementations struggle with variations
+\subsection{Tube-Based MPC}
+In tube-based MPC, the system state is decomposed into two distinct components: the nominal system, which is the controlled, deterministic model that ignores noise,
+and the error system, which measures the deviation between the plant and the nominal model, caused by stochastic disturbances (perturbations).
+By centering an invariant set around the nominal trajectory, the controller ensures that as long as the nominal state is controlled effectively, the true state of the system is guaranteed to remain within the tube boundaries with a certain probability.
 
-\subsection{Model Predictive Control}
+\subsection{Robust vs. Stochastic Tubes}
+Traditional Robust Tube MPC assumes worst-case bounded disturbances, which often results in overly conservative control actions.
+Stochastic Tube MPC relaxes this in three ways:
+first, by characterizing the probability distribution of the disturbances;
+second, by shrinking the constraints based on a risk budget rather than the maximum possible perturbation;
+and thirdly, by allowing the system to operate closer to its physical limits, improving the performance without sacrificing the safety margin.
 
-
-\section{Background}
+\section{Objective}
+This paper seeks to determine the feasibility of Tube-Based SMPC in practical applications.
+We will accomplish this objective by comparing the application of Tube-Based SMPC to a simple linear spring-damper system and comparing the performance profile to a Robust Tube MPC.
 
 \section{Main Method}
 
