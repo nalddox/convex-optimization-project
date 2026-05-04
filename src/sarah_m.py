@@ -32,6 +32,7 @@ def sarah_m(w_init, full_grad_func, stoch_grad_func, n, b, m, eta, beta, max_epo
         w_k = np.copy(w_1)
         w_k_minus_1 = np.copy(v_0)
         G_k_minus_1 = np.copy(G_0)
+        v_k_minus_1 = np.copy(v_0)
         
         # Inner loop k = 1, ..., m
         for k in range(1, m + 1):
