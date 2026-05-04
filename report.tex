@@ -66,7 +66,7 @@
 }
 
 \newcommand{\course}{16:332:509 Convex Optimization}
-\newcommand{\assignment}{Feasibility of Stochastic Optimization Methods for Model Predictive Control of an Electromagnetic Suspension System}
+\newcommand{\assignment}{Feasibility of Stochastic Optimization Methods for Model Predictive Control}
 \newcommand{\name}{Jeff Barner \& Thomas Trieu}
 \newcommand{\datefixed}{\today} 
 \newcommand{\realspace}{\mathbb{R}}
@@ -103,15 +103,21 @@ first, by characterizing the probability distribution of the disturbances;
 second, by shrinking the constraints based on a risk budget rather than the maximum possible perturbation;
 and thirdly, by allowing the system to operate closer to its physical limits, improving the performance without sacrificing the safety margin.
 
-\section{Objective}
+\subsection{Objective}
 This paper seeks to determine the feasibility of Tube-Based SMPC in practical applications.
-We will accomplish this objective by comparing the application of Tube-Based SMPC to a simple linear spring-damper system and comparing the performance profile to a Robust Tube MPC.
+First, the authors will outline the application of a Robust Tube MPC for a simple spring-damper system.
+% @Thomas I have no idea what you actually did
+Next, the authors will implement a tube based SMPC.
+Finally, the authors will compare the performance profile of the tube-based SMPC to a Robust Tube MPC.
 
 \section{Main Method}
+Our analysis begins with a simple spring-damper system.
+We construct a traditional Robust Tube MPC
+
+% TODO insert spring-damper system figure here
 
 \section{Numerical Results}
 
 \section{Conclusion}
 
-\section{Introduction}
 \end{document}
