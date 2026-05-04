@@ -1,0 +1,111 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{listings} % For including Python code
+\usepackage{xcolor}
+\usepackage{cite}
+\usepackage{url}
+
+% --- Code Listing Settings ---
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{python}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=python}
+
+% --- JSON Language Definition ---
+% We define how to parse JSON, but let it inherit your 'mystyle' formatting!
+\colorlet{punct}{red!60!black}
+\definecolor{delim}{RGB}{20,105,176}
+\colorlet{numb}{magenta!60!black}
+
+\lstdefinelanguage{json}{
+    showstringspaces=false,
+    breaklines=true,
+    string=[s]{"}{"},
+    stringstyle=\color{codepurple}, % Reuses your Python string color!
+    comment=[l]{:},
+    commentstyle=\color{delim}, % Colors the colons
+    literate=
+     *{0}{{{\color{numb}0}}}{1}
+      {1}{{{\color{numb}1}}}{1}
+      {2}{{{\color{numb}2}}}{1}
+      {3}{{{\color{numb}3}}}{1}
+      {4}{{{\color{numb}4}}}{1}
+      {5}{{{\color{numb}5}}}{1}
+      {6}{{{\color{numb}6}}}{1}
+      {7}{{{\color{numb}7}}}{1}
+      {8}{{{\color{numb}8}}}{1}
+      {9}{{{\color{numb}9}}}{1}
+      {\{}{{{\color{delim}{\{}}}}{1}
+      {\}}{{{\color{delim}{\}}}}}{1}
+      {[}{{{\color{delim}{[}}}}{1}
+      {]}{{{\color{delim}{]}}}}{1}
+}
+
+\newcommand{\course}{16:332:509 Convex Optimization}
+\newcommand{\assignment}{Feasibility of Stochastic Optimization Methods for Model Predictive Control of an Electromagnetic Suspension System}
+\newcommand{\name}{Jeff Barner \& Thomas Trieu}
+\newcommand{\datefixed}{\today} 
+\newcommand{\realspace}{\mathbb{R}}
+\newcommand{\intspace}{\mathbb{Z}}
+\newcommand{\norm}[1]{\left|\left|#1\right|\right|}
+\newcommand{\mtx}[1]{\mathbf{#1}}
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\psd}[1]{\mathbb{S}^{#1}_{+}}
+\newcommand{\tenpow}[1]{\times 10^{#1}}
+
+\title{\textbf{\course} \\ \assignment}
+\author{\name}
+\date{\datefixed}
+
+\begin{document}
+
+\maketitle
+\section*{Abstract}
+
+\section{Introduction}
+The pursuit of high-speed, frictionless ground transportation has positioned Electromagnetic Suspension (EMS) systems as a cornerstone of modern Maglev technology.
+By utilizing attractive magnetic forces to counteract gravity, EMS systems enable vehicles to "levitate" without physical contact, significantly reducing mechanical wear and energy dissipation.
+However, maintaining a stable air gap between the electromagnet and the guideway presents a formidable control challenge.
+
+\subsection{Challenge}
+The inherent dynamics of an EMS system are non-linear, open-loop unstable, and highly sensitive to external perturbations.
+Traditional implementations of the controller linearize the non-linear system around a specified equilibrium point.
+However, these implementations struggle with variations
+
+\subsection{Model Predictive Control}
+
+
+\section{Background}
+
+\section{Main Method}
+
+\section{Numerical Results}
+
+\section{Conclusion}
+
+\section{Introduction}
+\end{document}
