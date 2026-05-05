@@ -94,7 +94,7 @@ Tube-Based Stochastic MPC (SMPC) represents a sophisticated evolution, providing
 
 \subsection{Tube-Based MPC}
 In tube-based MPC, the system state is decomposed into two distinct components: the nominal system, which is the controlled, deterministic model that ignores noise,
-and the error system, which measures the deviation between the plant and the nominal model, caused by stochastic disturbances (perturbations).
+and the error system, which measures the deviation between the plant and the nominal model, caused by stochastic disturbances (perturbations) \cite{LANGSON2004125,dey2026adaptivetubempccommon}.
 By centering an invariant set around the nominal trajectory, the controller ensures that as long as the nominal state is controlled effectively, the true state of the system is guaranteed to remain within the tube boundaries with a certain probability.
 
 \subsection{Robust vs. Stochastic Tubes}
@@ -102,12 +102,12 @@ Traditional Robust Tube MPC assumes worst-case bounded disturbances, which often
 Stochastic Tube MPC relaxes this in three ways:
 first, by characterizing the probability distribution of the disturbances;
 second, by shrinking the constraints based on a risk budget rather than the maximum possible perturbation;
-and thirdly, by allowing the system to operate closer to its physical limits, improving the performance without sacrificing the safety margin.
+and thirdly, by allowing the system to operate closer to its physical limits, improving the performance without sacrificing the safety margin \cite{smpcSurvey1,smpcSurvey2,smpcSurvey3}.
 
 \subsection{Objective}
 This project seeks to determine the feasibility of Tube-Based SMPC in practical applications.
 First, the authors will outline the application of a Robust Tube-based MPC for a simple spring-damper system.
-Next, the authors will implement a Stochastic Tube-based MPC using the SARAH-M algorithm \cite{YANG2024122295}. The SARAH-M algorithm is a variance-reduced stochastic gradient method, and in this project, it is used to solve a scenario-average cost at each time step. The contraint tightening margin for the stochastic method is derived from a Monte Carlo simulation of the closed-loop error dynamics rather than a worst-case bound margin that is used for the robust tube-based MPC. Finally, the two approaches are compared on trajectory tracking performance and per-step computation time.
+Next, the authors will implement a Stochastic Tube-based MPC using the SARAH-M algorithm \cite{YANG2024122295}. The SARAH-M algorithm is a variance-reduced stochastic gradient method, and in this project, it is used to solve a scenario-average cost at each time step \cite{doi:10.1137/1.9781611973433}. The contraint tightening margin for the stochastic method is derived from a Monte Carlo simulation of the closed-loop error dynamics rather than a worst-case bound margin that is used for the robust tube-based MPC. Finally, the two approaches are compared on trajectory tracking performance and per-step computation time.
 Finally, the authors will compare the performance profile of the tube-based SMPC to a Robust Tube MPC.
 
 \section{Technical Background}
@@ -150,23 +150,119 @@ $$\mathbf{U}^* = \underbrace{({\mathcal{M}}^\top W_4 \mathcal{M} + W_3)^{-1} \ma
 
 This gain matrix is computed once offline, making the nominal MPC step a simple matrix-vector multiplication.
 
+\subsection{Tube-Based Robust MPC}
+Real physical systems are subject to disturbances. Here, process noise $w_k$ enters additively through the input channel, modeling unmodeled forces (friction, measurement-induced torques) so that the true closed-loop dynamics are:
+
+$$\mathbf{x}_{k+1} = A\mathbf{x}_k + Bu_k + Bw_k$$
+
+A purely nominal MPC ignores $w_k$ and can exhibit large deviations from the desired trajectory. Tube-based MPC addresses this by decomposing the control law into two parts:
+
+$$u_k = \bar{u}_k + K(x_k - \bar{x}_k)$$
+
+where $\bar{x}_k$ is a *nominal* (disturbance-free) state trajectory, $\bar{u}_k$ is the nominal optimal input, and $K(\mathbf{x}_k - \bar{x}_k)$ is an *ancillary* LQR feedback term that drives the actual state back toward the nominal. The nominal system evolves as:
+
+$$\bar{x}_{k+1} = A\bar{x}_k + B\bar{u}_k$$
+
+and the error $e_k = \mathbf{x}_k - \bar{x}_k$ obeys the closed-loop error dynamics:
+
+$$e_{k+1} = (A + BK)\,e_k + Bw_k = A_{\text{cl}}\,e_k + Bw_k$$
+
+For the nominal MPC optimization to remain feasible, the predicted nominal outputs are "tightened" by a margin that accounts for the maximum expected error. Under a worst-case disturbance assumption, the cumulative output deviation after $k$ steps is bounded by the $\ell_1$ gain:
+
+$$h_k = d_{\max} \sum_{j=0}^{k-1} \left| C A_{\text{cl}}^j B \right|$$
+
+where $d_{\max}$ is an upper bound on the per-step disturbance magnitude (set here to $3\sigma$, corresponding to the 99th percentile of a zero-mean Gaussian). The set of all possible trajectories consistent with this bound forms a "tube" and guarantees that the actual output remains inside it regardless of disturbance realizations \cite{dey2026adaptivetubempccommon,LANGSON2004125}.
+
+The ancillary feedback gain $K$ is computed by solving the Discrete Algebraic Riccati Equation (DARE):
+
+$$P = A^\top P A - (A^\top P B)(R + B^\top P B)^{-1}(B^\top P A) + Q$$
+
+$$K = -(R + B^\top P B)^{-1}(B^\top P A)$$
+
+with state weight $Q = I$ and input weight $R = 10I$. The chosen weights make the closed-loop matrix $A_{\text{cl}} = A + BK$ strictly stable, ensuring the error tube has finite width.
+
 \subsection{SARAH-M}
-SARAH-M is a stochastic optimization method that utilizes Stochastic Recursive Gradient Algorithm (SARAH) with a momentum term to accelerate the optimization process.
-The algorithm utilizes an inner and outer loop structure to update a stochastic gradient estimate recursively.\cite{YANG2024122295}
-The defining feature is the Heavy-Ball Momentum term in the inner loop, which accelerates the convergence of the algorithm, giving it linear convergence rates for strongly convex functions.
+SARAH-M \cite{YANG2024122295} is a stochastic optimization algorithm that combines the Stochastic Recursive Gradient Algorithm (SARAH) with a Heavy-Ball momentum term to accelerate convergence on smooth, strongly convex objectives. It operates in an outer-inner loop structure. At the start of each outer epoch $s$, a full gradient $G_0 = \nabla f(w_s)$ is computed over all $n$ samples. A gradient step is then taken to initialize the inner loop: $w_1 = w_s - \eta G_0$.
+
+In the inner loop, at each iteration $k$, a mini-batch $S$ of size $b$ is randomly drawn without replacement. Rather than computing an expensive full gradient, SARAH-M builds a recursive variance-reduced estimator:
+$$G_k = \nabla f_S(v_k) - \nabla f_S(v_{k-1}) + G_{k-1}$$
+This estimator corrects the stochastic gradient using the difference between successive gradient evaluations on the same batch, reducing variance without requiring a full pass over the data. The parameter update uses the momentum variable $v_k$:
+$$w_{k+1} = v_k - \eta G_k$$
+$$v_{k+1} = w_{k+1} + \beta(w_{k+1} - w_k)$$
+where $\beta$ is the momentum coefficient. The Heavy-Ball term $\beta(w_{k+1} - w_k)$ extrapolates past the current iterate to accelerate progress in persistent descent directions.
+
+The step size is set to $\eta = \frac{1}{2\lambda_{\max}(H)}$, where $H = \mathcal{M}^\top W_4 \mathcal{M} + W_3$ is the Hessian of the MPC cost. This choice guarantees convergence for strongly convex quadratic objectives. After $m$ inner iterations, the outer variable is updated to $w_{s+1} = w_m$ and the next epoch begins.
 
 \section{Main Method}
 This section will go over the system model that was implemented, the decomposition of the tube, the robust controller, and the stochastic controller.
 
-\section{Numerical Results}
+\subsection{System Model}
+The four-state, single-input, single-output discrete-time model has the form:
+
+$$\mathbf{x}_{k+1} = A\mathbf{x}_k + Bu_k + Bw_k, \qquad y_k = C\mathbf{x}_k$$
+
+where:
+
+\begin{itemize}
+    \item $\mathbf{x}_k = [x_{1,k},\, \dot{x}_{1,k},\, x_{2,k},\, \dot{x}_{2,k}]^\top \in \mathbb{R}^4$ is the full state vector
+    \item $u_k \in \mathbb{R}$ is the applied force to mass $m_2$
+    \item $y_k \in \mathbb{R}$ is the observed position of mass $m_1$
+    \item $w_k \sim \mathcal{N}(0, \sigma^2)$ is the scalar process noise with standard deviation $\sigma = 5$, entering through the same input channel as $u_k$
+    \item $C = [1, 0, 0, 0]$ extracts the position of $m_1$.
+\end{itemize}
+
+The prediction and control horizons are both set to $N_p = N_c = 20$ steps. The desired reference trajectory $r_k$ is a binary pulse signal: value 1 from $k=0$ to $k=99$, value 0 from $k=100$ to $k=199$, and value 1 again from $k=200$ onward, yielding $T=280$ closed-loop steps.
+
+At each time step, predicted outputs over horizon $N_p$ are stacked as $\hat{\mathbf{Y}} = \mathcal{O} \mathbf{x}_k + \mathcal{M} \mathbf{U}$, where $\mathcal{O} \in \mathbb{R}^{N_pr \times n}$ and $\mathcal{M} \in \mathbb{R}^{N_pr \times N_cm}$ are precomputed from the system matrices. The deterministic MPC cost becomes a quadratic in $\mathbf{U}$:
+$$\min_{\mathbf{U}} \; \left\|\mathcal{M}\mathbf{U} - (\mathbf{R} - \mathcal{O}\mathbf{x}_k)\right\|^2_{W_4} + \left\|\mathbf{U}\right\|^2_{W_3}$$
+with closed-form solution $\mathbf{U}^* = (\mathcal{M}^\top W_4 \mathcal{M} + W_3)^{-1} \mathcal{M}^\top W_4 (\mathbf{R} - \mathcal{O}\mathbf{x}_k)$.
+
+\subsection{Tube Decomposition}
+The applied input is split into nominal and feedback parts \cite{LANGSON2004125}:
+
+$$u_k = \bar{u}_k + K(x_k - \bar{x}_k)$$
+
+The LQR gain $K$ is computed via DARE with $Q = I_n$, $R=10I_m$. The nominal state $\bar{x}_k$ evolves noise-free, and the error $e_k = x_k - \bar{x}_k$ follows:
+
+$$e_{k+1} = (A + BK)\,e_k + Bw_k$$
+
+\subsection{Stochastic Tube MPC via SARAH-M}
+At each time step, instead of minimizing the nominal cost $$\norm{\mathcal{M}\mathbf{U} - \mathbf{s}}^2_{W_4}$$ (where $\mathbf{s} = \mathbf{R} - \mathcal{O}\bar{x}_k$ encodes the tracking objective), the SARAH-M controller minimizes the expected cost over $n_s$ disturbance scenarios:
+
+$$\min_{\mathbf{U}} \frac{1}{n_s} \sum_{j=1}^{n_s} \left\| \mathcal{M}\mathbf{U} - \mathbf{s}_j \right\|^2_{W_4} + \|\mathbf{U}\|^2_{W_3}$$
+
+where for each $j$, the disturbance-adjusted tracking target is $\mathbf{s}_j = \mathbf{R} - \mathcal{O}\bar{x}_k - D_j$. The term $D_j \in \mathbb{R}^{N_p}$ is the contribution of a simulated disturbance sequence $\{w_{j,t}\}_{t=0}^{N_p - 1}$ propagated through the closed-loop prediction model:
+
+$$D_j^{(t)} = C A_{\text{cl}}^t B w_{j,0} + C A_{\text{cl}}^{t-1} B w_{j,1} + \cdots + C B w_{j,t-1}.$$
+
+This formulation is a direct application of scenario-based stochastic programming: the controller hedges against $n_s=20$ independently drawn futures simultaneously. Because the objective is a quadratic in $\mathbf{U}$ for every scenario, the gradient is:
+
+$$\nabla_\mathbf{U} f_j(\mathbf{U}) = 2\left(H\mathbf{U} - \mathcal{M}^\top W_4 \mathbf{s}_j\right)$$
+
+where $H = \mathcal{M}^\top W_4 \mathcal{M} + W_3$. The full gradient over all scenarios is just the average. SARAH-M is then run for a fixed number of inner steps $m=10$ across $s=5$ outer epochs, with mini-batch size $b=5$ and momentum $\beta=0.1$ After SARAH-M converges, the resulting unconstrained input sequence is projected onto the constraint set: predicted outputs must lie above the desired reference plus the stochastic tightening margin, solved as a quadratic program via OSQP with warm-starting for efficiency.
+
+\subsection{Robust Tube MPC}
+The worst-case (robust) tube is computed analytically as described in Section 2.3. The half-width at time step $k$ is:
+
+$$h_k = d_{\max} \sum_{j=0}^{k-1} \left| C A_{\text{cl}}^j B \right|, \qquad d_{\max} = 3\sigma$$
+
+This tube grows monotonically with time as disturbance effects accumulate, and is centered on the nominal trajectory produced by running the MPC with $w_k \equiv 0$.
+
+
+\section{Simulation, Experimentation, and Numerical Results}
 \begin{figure}
     \centering    \includegraphics[width=\textwidth]{runtime_comparison.png}
-    \label{runtime}
     \caption{Runtime comparison between Robust MPC and Stochastic MPC}
+    \label{runtime}
 \end{figure}
 
-The two controllers were simulated ona 300-step pulse reference trajectory (parameters: $f = v = 20$, $\sigma = 5$, $N_{MC} = 20$ trials for SARAH-M). Fig.~\ref{runtime}
+\begin{figure}
+    \centering    \includegraphics[width=\textwidth]{tube_comparison.png}
+    \caption{Comparison between Robust MPC and Stochastic MPC Tube Width}
+    \label{tube}
+\end{figure}
 
+The two controllers were simulated on a 300-step pulse reference trajectory (parameters: $N_p = N_c = 20$, $\sigma = 5$, $N_{MC} = 20$ trials for SARAH-M). Figure~\ref{tube} shows the trajectory distributions. The robust worst-case tube (red shaded) is highly conservative. It expands rapidly as disturbance energy accumulates over time. The SARAH-M 95th percentile band is substantially tighter, demonstrating that probabilistic constraint tightening admits less consevative feasbile regions. The stochastic method is able to hug the desired path more closely than the robust method due to the much narrower tube. Both controllers successfully track the desired reference path. Figure~\ref{runtime} shows per-step computation time, comparing the computational complexity of the robust and stochastic methods. The robust controller is fast (closed-form and one OSQP solve). The SARAH-M controller is slower due to the gradient iterations over scenarios, incurring a 3.50 millisecond average overhead. Compared to the robust controller's 2.40 millisecond average overhead, the stochastic's overhead is not significant when considering the 91.5\% efficiency gain from a narrower tube.
 
 
 \section{Conclusion}
@@ -175,6 +271,7 @@ While Robust MPC provides absolute saftey guarantees, it does so at the expense 
 The core contribution of this study is the empirical validation that higher risk tolerance can be directly translated to operational gain.
 In the simulated scenarios, the SMPC controller achieved a 91.9\% gain in the tube width over the robust controller, primarily because the SMPC can avoid low-probability outlier disturbance events that the robust controller is forced to mitigate.
 However, the convergence time of the SARAH-M algorithm is 45.4\% slower, which is a noteworthy time penalty for systems that require fast convergence times on the order of milliseconds or faster.
+Future work could explore several directions. First, the number of SARAH-M epochs and inner iterations were fixed heuristically; an adaptive stopping criterion based on the gradient norm $\|G_k\|$ could reduce unnecessary computation at steps where the optimizer converges early. Second, the current constraint tightening margin is precomputed offline from the nominal closed-loop dynamics; an online margin that adapts to the observed error covariance could further tighten the tube in low-noise operating conditions. Third, this study used a single-input, single-output system; extending the framework to multi-input, multi-output systems with coupled constraints would test the scalability of the scenario-based approach. Finally, replacing the uniform scenario sampling with importance-weighted sampling concentrated near constraint-active regions could improve both the accuracy of the gradient estimate and the tightness of the resulting feasible set.
 
 \section{Artifacts}
 Repository can be found at: https://github.com/nalddox/convex-optimization-project/
