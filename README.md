@@ -4,5 +4,6 @@ numpy cvxpy scipy matplotlib time
 ## Program to run
 driverCodeMPC.py
 
-## Plot file
+## Produced plot files
 tube_comparison.png
+runtime_comparison.png
