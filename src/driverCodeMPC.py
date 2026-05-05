@@ -210,6 +210,15 @@ plt.plot(cf_nominal, '--', color='orange', linewidth=2.0,
          label='Nominal trajectory (robust tube center)', zorder=5)
 plt.plot(desiredList,'r',  linewidth=2.0, label='Desired', zorder=6)
 
+# Percentage by which SARAH-M tube is narrower than the robust tube (skip t=0 where robust_hw=0)
+robust_width = 2 * robust_hw
+sarah_width  = mc_upper - mc_lower
+valid        = robust_width > 1e-10
+pct_narrower = float(np.mean((robust_width[valid] - sarah_width[valid]) / robust_width[valid] * 100))
+plt.annotate(f'SARAH-M tube is {pct_narrower:.1f}% narrower\nthan the robust worst-case tube (avg)',
+             xy=(0.02, 0.05), xycoords='axes fraction', fontsize=9,
+             bbox=dict(boxstyle='round,pad=0.4', facecolor='white', edgecolor='gray', alpha=0.85))
+
 plt.xlabel('time steps')
 plt.ylabel('Output')
 plt.legend(loc='upper right')
@@ -285,6 +294,11 @@ plt.plot(steps, times_sarah,  color='steelblue', linewidth=1.2,
          label=f'SARAH-M (mean = {times_sarah.mean():.2f} ms)')
 plt.axhline(times_robust.mean(), color='tab:orange', linestyle='--', linewidth=0.8)
 plt.axhline(times_sarah.mean(),  color='steelblue',  linestyle='--', linewidth=0.8)
+pct_slower = (times_sarah.mean() - times_robust.mean()) / times_robust.mean() * 100
+plt.annotate(f'SARAH-M is {pct_slower:.1f}% slower than robust\n(mean over {T_time} steps)',
+             xy=(0.02, 0.95), xycoords='axes fraction', fontsize=9, va='top',
+             bbox=dict(boxstyle='round,pad=0.4', facecolor='white', edgecolor='gray', alpha=0.85))
+
 plt.xlabel('step')
 plt.ylabel('time (ms)')
 plt.title(f'Per-step computation time over {T_time} MPC steps')
