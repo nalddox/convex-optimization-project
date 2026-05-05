@@ -1,5 +1,5 @@
 ## Packages to install
-numpy cvxpy scipy matplotlib
+numpy cvxpy scipy matplotlib time
 
 ## Program to run
 driverCodeMPC.py
