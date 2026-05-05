@@ -150,6 +150,11 @@ $$\mathbf{U}^* = \underbrace{({\mathcal{M}}^\top W_4 \mathcal{M} + W_3)^{-1} \ma
 
 This gain matrix is computed once offline, making the nominal MPC step a simple matrix-vector multiplication.
 
+\subsection{SARAH-M}
+SARAH-M is a stochastic optimization method that utilizes Stochastic Recursive Gradient Algorithm (SARAH) with a momentum term to accelerate the optimization process.
+The algorithm utilizes an inner and outer loop structure to update a stochastic gradient estimate recursively.\cite{YANG2024122295}
+The defining feature is the Heavy-Ball Momentum term in the inner loop, which accelerates the convergence of the algorithm, giving it linear convergence rates for strongly convex functions.
+
 \section{Main Method}
 This section will go over the system model that was implemented, the decomposition of the tube, the robust controller, and the stochastic controller.
 
@@ -170,6 +175,8 @@ While Robust MPC provides absolute saftey guarantees, it does so at the expense 
 The core contribution of this study is the empirical validation that higher risk tolerance can be directly translated to operational gain.
 In the simulated scenarios, the SMPC controller achieved a 91.9\% gain in the tube width over the robust controller, primarily because the SMPC can avoid low-probability outlier disturbance events that the robust controller is forced to mitigate.
 However, the convergence time of the SARAH-M algorithm is 45.4\% slower, which is a noteworthy time penalty for systems that require fast convergence times on the order of milliseconds or faster.
+
+\section{Artifacts}
 Repository can be found at: https://github.com/nalddox/convex-optimization-project/
 
 \bibliographystyle{IEEEtran}
