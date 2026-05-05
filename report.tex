@@ -66,7 +66,7 @@
 }
 
 \newcommand{\course}{16:332:509 Convex Optimization}
-\newcommand{\assignment}{Feasibility of Stochastic Optimization Methods for Model Predictive Control}
+\newcommand{\assignment}{Tube-Based Model Predictive Control with Stochastic Optimization via SARAH-M}
 \newcommand{\name}{Jeff Barner \& Thomas Trieu}
 \newcommand{\datefixed}{\today} 
 \newcommand{\realspace}{\mathbb{R}}
@@ -103,21 +103,53 @@ first, by characterizing the probability distribution of the disturbances;
 second, by shrinking the constraints based on a risk budget rather than the maximum possible perturbation;
 and thirdly, by allowing the system to operate closer to its physical limits, improving the performance without sacrificing the safety margin.
 
-\subsection{Objective}
+\subsection{Objective} %@Thomas fill this part out
 This paper seeks to determine the feasibility of Tube-Based SMPC in practical applications.
 First, the authors will outline the application of a Robust Tube MPC for a simple spring-damper system.
 % @Thomas I have no idea what you actually did
 Next, the authors will implement a tube based SMPC.
 Finally, the authors will compare the performance profile of the tube-based SMPC to a Robust Tube MPC.
 
-\section{Main Method}
-Our analysis begins with a simple spring-damper system.
-We construct a traditional Robust Tube MPC
+\section{Technical Background}
+\subsection{State-Space Equation}
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth]{spring_damper_system.png}
+    \label{spring-damper-system}
+    \caption{Spring-damper system model.}
+\end{figure}
 
-% TODO insert spring-damper system figure here
+Following the work of Haber\cite{haber2023mpc1}, the physical model of a two-spring, two-damper system is given by Fig.~\ref{spring-damper-system}.
+Applying Newton's second law to each mass yields the equations of motion:
+$$m_1 \ddot{x}_1 = -(k_1+k_2)x_1 - (d_1+d_2)\dot{x}_1 + k_2 x_2 + d_2 \dot{x}_2$$
+$$m_2 \ddot{x}_2 = k_2 x_1 + d_2 \dot{x}_1 - k_2 x_2 - d_2 \dot{x}_2 + F$$
+
+Choose state vector $\mathbf{x} = [x_1, \dot{x}_1, x_2, \dot{x}_2]^\top$, control input $u = F$, and output $y = x_1$.
+Then the state-space equation for this system is given by:
+$$\dot{\mathbf{x}} = A_c \mathbf{x} + B_c u, \qquad y = C \mathbf{x}$$
+here the matrices $A_c$, $B_c$, and $C$ are populated directly from the physical parameters.
+
+The system is then discretized using the forward Euler approximation:
+$$A = (I - T_s A_c)^{-1}, \qquad B = A \cdot T_s B_c$$
+
+\subsection{Model Predictive Control}
+Model predictive control is an optimization-based control strategy that explicitly uses a dynamic model to predict future plant behavior over a finite prediction horizon $N_p$.
+MPC chooses control inputs that minimize a cost function subject to constraints.
+At each sampling instant $k$, MPC solves the Optimal Control Problem:
+
+$$\min_{\{u_0, \ldots, u_{N_c-1}\}} \sum_{i=0}^{N_p - 1} \left\| y_{k+i|k} - r_{k+i} \right\|^2_{W_4} + \left\| \Delta u \right\|^2_{W_3}$$
+where $y_{k+i|k}$ is the predicted output $i$ steps ahead, $r_{k+i}$ is the reference trajectory, $W_4$ penalizes tracking error over the prediction horizon $N_p$, $W_3$ penalizes control input increments over the control horizon $N_c$, and $\Delta u$ denotes differences between successive control actions.
+
+\section{Main Method}
 
 \section{Numerical Results}
 
 \section{Conclusion}
+SMPC can be a viable alternative to Robust MPC 
+
+Repository can be found at: https://github.com/nalddox/convex-optimization-project/
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
 
 \end{document}
