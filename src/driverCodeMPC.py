@@ -5,12 +5,14 @@ Unconstrained Model Predictive Control Implementation in Python
 - This version is without an observer, that is, it assumes that the
 - the state vector is perfectly known
 """
+import time
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.linalg import solve_discrete_are
 
 from functionMPC import systemSimulate
 from ModelPredictiveControl import ModelPredictiveControl
+from sarah_m import sarah_m
 
 ###############################################################################
 #  Define the MPC algorithm parameters
@@ -115,12 +117,12 @@ for i in range(f):
 ###############################################################################
 # Define the reference trajectory 
 ###############################################################################
-timeSteps=900
+timeSteps=300
 
 # pulse trajectory
 desiredTrajectory=np.zeros(shape=(timeSteps,1))
-desiredTrajectory[0:300,:]=np.ones((300,1))
-desiredTrajectory[600:,:]=np.ones((300,1))
+desiredTrajectory[0:100,:]=np.ones((100,1))
+desiredTrajectory[200:,:]=np.ones((100,1))
 
 
 ###############################################################################
@@ -156,9 +158,6 @@ cf_nominal  = np.array([float(C @ mpc_cf.nominal_states[j]) for j in range(T)])
 
 ###############################################################################
 # Worst-case robust tube (analytical)
-# Closed-loop error dynamics:  e_{k+1} = A_cl e_k + w_k,  w_k = B d_k
-# Worst-case output deviation after k steps (l1 gain, adversarial input sign):
-#   h_k = d_max * sum_{j=0}^{k-1} |C A_cl^j B|
 ###############################################################################
 A_arr = np.asarray(A);  B_arr = np.asarray(B)
 C_arr = np.asarray(C);  K_arr = np.asarray(K)
@@ -175,7 +174,7 @@ for k in range(T):
 
 
 ###############################################################################
-# SARAH-M Monte Carlo — probabilistic tube
+# SARAH-M Monte Carlo tube
 ###############################################################################
 N_mc = 20
 mc_outputs = np.zeros((N_mc, T))
@@ -192,19 +191,19 @@ mc_upper = np.percentile(mc_outputs, 95, axis=0)
 
 
 ###############################################################################
-# Plot — worst-case robust tube vs SARAH-M probabilistic tube
+# Plot — worst-case robust tube vs stochastic tube
 ###############################################################################
 plt.figure(figsize=(12, 6))
 
 # worst-case band centred on the nominal trajectory
 plt.fill_between(t, cf_nominal - robust_hw, cf_nominal + robust_hw,
                  alpha=0.18, color='tab:red',
-                 label=f'Robust worst-case tube (99th % per sample)')
+                 label=f'Robust worst-case tube (99th%)')
 
 # SARAH-M Monte Carlo band
 plt.fill_between(t, mc_lower, mc_upper,
                  alpha=0.40, color='steelblue',
-                 label=f'SARAH-M probabilistic tube (5th-95th %, N={N_mc})')
+                 label=f'SARAH-M tube (5th-95th%)')
 
 plt.plot(mc_mean,    linewidth=1.5, color='steelblue', label='SARAH-M mean trajectory')
 plt.plot(cf_nominal, '--', color='orange', linewidth=2.0,
@@ -216,6 +215,83 @@ plt.ylabel('Output')
 plt.legend(loc='upper right')
 plt.tight_layout()
 plt.savefig('tube_comparison.png', dpi=600)
+plt.show()
+
+
+###############################################################################
+# SARAH-M gradient convergence (single representative time step, t=0)
+###############################################################################
+# mpc_diag = ModelPredictiveControl(A,B,C,f,v,W3,W4,x0,desiredTrajectory,K,
+#                                    noise_std=noise_std, use_sarah_m=True)
+
+# full_grad_diag, stoch_grad_diag = mpc_diag.make_scenario_cost(
+#     x0, np.ones((f, 1)) * -5.0, mpc_diag.n_scenarios, noise_std)
+
+# dw_init_diag = np.zeros((f * mpc_diag.m, 1))
+# _, grad_history = sarah_m(dw_init_diag, full_grad_diag, stoch_grad_diag,
+#                            n=mpc_diag.n_scenarios, b=mpc_diag.sarah_b,
+#                            m=mpc_diag.sarah_inner, eta=mpc_diag.sarah_eta,
+#                            beta=mpc_diag.sarah_beta, max_epochs=mpc_diag.sarah_epochs,
+#                            return_grad_history=True)
+
+# # Mark epoch boundaries: each epoch has 1 full-grad eval + sarah_inner inner steps
+# epoch_len = mpc_diag.sarah_inner + 1
+# epoch_starts = [s * epoch_len for s in range(mpc_diag.sarah_epochs)]
+
+# plt.figure(figsize=(8, 5))
+# plt.semilogy(grad_history, linewidth=2, color='steelblue', label='||G_k||')
+# for idx, es in enumerate(epoch_starts):
+#     plt.axvline(es, color='gray', linestyle='--', linewidth=0.8,
+#                 label='Epoch start' if idx == 0 else None)
+# plt.xlabel('SARAH-M iteration')
+# plt.ylabel('Gradient norm $\\|G_k\\|$')
+# plt.title('SARAH-M Gradient Convergence (t = 0)')
+# plt.legend()
+# plt.grid(True, which='both', alpha=0.4)
+# plt.tight_layout()
+# plt.savefig('stochastic_convergence.png', dpi=600)
+# plt.show()
+
+
+###############################################################################
+# Runtime comparison: Robust (closed-form) vs SARAH-M
+###############################################################################
+T_time = 150  # steps to time
+
+times_robust = []
+mpc_rt_robust = ModelPredictiveControl(A,B,C,f,v,W3,W4,x0,desiredTrajectory,K,
+                                        noise_std=noise_std, use_sarah_m=False)
+for i in range(T_time):
+    t0 = time.perf_counter()
+    mpc_rt_robust.computeControlInputs()
+    times_robust.append(time.perf_counter() - t0)
+
+times_sarah = []
+mpc_rt_sarah = ModelPredictiveControl(A,B,C,f,v,W3,W4,x0,desiredTrajectory,K,
+                                       noise_std=noise_std, use_sarah_m=True)
+for i in range(T_time):
+    t0 = time.perf_counter()
+    mpc_rt_sarah.computeControlInputs()
+    times_sarah.append(time.perf_counter() - t0)
+
+times_robust = np.array(times_robust) * 1e3  # convert to ms
+times_sarah  = np.array(times_sarah)  * 1e3
+
+steps = np.arange(T_time)
+plt.figure(figsize=(9, 5))
+plt.plot(steps, times_robust, color='tab:orange', linewidth=1.2,
+         label=f'Robust  (mean = {times_robust.mean():.2f} ms)')
+plt.plot(steps, times_sarah,  color='steelblue', linewidth=1.2,
+         label=f'SARAH-M (mean = {times_sarah.mean():.2f} ms)')
+plt.axhline(times_robust.mean(), color='tab:orange', linestyle='--', linewidth=0.8)
+plt.axhline(times_sarah.mean(),  color='steelblue',  linestyle='--', linewidth=0.8)
+plt.xlabel('step')
+plt.ylabel('time (ms)')
+plt.title(f'Per-step computation time over {T_time} MPC steps')
+plt.legend()
+plt.grid(True, alpha=0.4)
+plt.tight_layout()
+plt.savefig('runtime_comparison.png', dpi=600)
 plt.show()
 
 

@@ -81,8 +81,8 @@ class ModelPredictiveControl(object):
 
         self.margin_stoch_y = self.calculate_output_stoch_margin(percentile=95)
         self.margin_robust_y = self.calculate_output_robust_margin(d_max=self.d_max_robust)
-        print(f"Stochastic Constraint Tightening Margin: {self.margin_stoch_y:.3f}")
-        print(f"Robust Constraint Tightening Margin: {self.margin_robust_y:.3f}")
+        # print(f"Stochastic Constraint Tightening Margin: {self.margin_stoch_y:.3f}")
+        # print(f"Robust Constraint Tightening Margin: {self.margin_robust_y:.3f}")
 
     # this function forms the lifted matrices O and M, as well as the 
     # the gain matrix of the control algorithm and returns them 
@@ -158,40 +158,12 @@ class ModelPredictiveControl(object):
         yk=np.matmul(self.C,state)
         
         return xkp1,yk
-        
 
-    # this function computes the control inputs, applies them to the system 
-    # by calling the propagateDynamics() function and appends the lists
-    # that store the inputs, outputs, states
-    # def computeControlInputs(self):
-                
-    #     # extract the segment of the desired control trajectory
-    #     desiredControlTrajectory=self.desiredControlTrajectoryTotal[self.currentTimeStep:self.currentTimeStep+self.f,:]
-
-    #     # compute the vector s
-    #     vectorS=desiredControlTrajectory-np.matmul(self.O,self.states[self.currentTimeStep])
-       
-    #     # compute the control sequence
-    #     inputSequenceComputed=np.matmul(self.gainMatrix,vectorS)
-    #     inputApplied=np.zeros(shape=(1,1))
-    #     inputApplied[0,0]=inputSequenceComputed[0,0]
-        
-    #     # compute the next state and output
-    #     state_kp1,output_k=self.propagateDynamics(inputApplied,self.states[self.currentTimeStep])
-        
-    #     # append the lists
-    #     self.states.append(state_kp1)
-    #     self.outputs.append(output_k)
-    #     self.inputs.append(inputApplied)
-    #     # increment the time step
-    #     self.currentTimeStep=self.currentTimeStep+1
 
     def computeControlInputs(self):
         # extract the segment of the desired control trajectory
         Y_LIMIT = self.desiredControlTrajectoryTotal[self.currentTimeStep:self.currentTimeStep+self.f, :]
         desiredControlTrajectory = np.ones((self.f,1)) * -5.0
-
-        
 
         # get the current states
         nominal_state = self.nominal_states[-1]
@@ -205,22 +177,22 @@ class ModelPredictiveControl(object):
             full_grad, stoch_grad = self.make_scenario_cost(
                 nominal_state, desiredControlTrajectory, self.n_scenarios, self.noise_std)
             
-            # 1. Run the super fast UNCONSTRAINED SARAH-M
+            # unconstrained SARAH-M
             unconstrained_dw = sarah_m(dw_init, full_grad, stoch_grad,
                                        n=self.n_scenarios, b=self.sarah_b, m=self.sarah_inner,
                                        eta=self.sarah_eta, beta=self.sarah_beta, max_epochs=self.sarah_epochs)
             
-            # 2. Project the final result ONCE to respect the Stochastic Tightening
+            # project the final result to respect the stochastic tightening
             constrained_dw = self.project_state_constraints(
                 unconstrained_dw, self.M, self.O, nominal_state, Y_LIMIT, self.margin_stoch_y)
                 
             inputNominal = constrained_dw[0:self.m, :]
         else:
-            # 1. Run the super fast UNCONSTRAINED Robust (Analytical)
+            # unconstrained Robust (Analytical)
             vectorS = desiredControlTrajectory - np.matmul(self.O, nominal_state)
             unconstrained_u = np.matmul(self.gainMatrix, vectorS)
             
-            # 2. Project the final result ONCE to respect the Robust Tightening
+            # project the final result to respect the robust tightening
             constrained_u = self.project_state_constraints(
                 unconstrained_u, self.M, self.O, nominal_state, Y_LIMIT, self.margin_robust_y)
                 
@@ -413,7 +385,6 @@ class ModelPredictiveControl(object):
         
         prob = cp.Problem(objective, constraints)
         try:
-            # OSQP is exceptionally fast for repeated micro-QPs
             prob.solve(solver=cp.OSQP, warm_start=True) 
             if u.value is not None:
                 return u.value
