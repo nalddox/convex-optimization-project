@@ -85,6 +85,7 @@
 
 \maketitle
 \section*{Abstract}
+This project investigates Tube-Based Stochastic Model Predictive Control (SMPC) as a less conservative alternative to Robust Tube MPC for systems subject to stochastic disturbances and uncertainties. The team implements both controllers on a two-mass spring-damper system and introduce the SARAH-M variance-reduced stochastic gradient algorithm as the optimizer for the scenario-based MPC optimization problem. Constraint tightening for the stochastic method is handled probabilistically via Monte Carlo simulation of the closed-loop error dynamics rather than worst-case bounding like the robust method. Simulation results show that the stochastic tube is significantly tighter than the robust worst-case tube, at the cost of increased per-step computation time. We conclude that SARAH-M based SMPC is feasible for moderate real-time requirements and offers a practical trade-off between conservatism and computational complexity.
 
 \section{Introduction}
 Control systems are increasingly moving towards complex and uncertain environments.
@@ -103,11 +104,10 @@ first, by characterizing the probability distribution of the disturbances;
 second, by shrinking the constraints based on a risk budget rather than the maximum possible perturbation;
 and thirdly, by allowing the system to operate closer to its physical limits, improving the performance without sacrificing the safety margin.
 
-\subsection{Objective} %@Thomas fill this part out
-This paper seeks to determine the feasibility of Tube-Based SMPC in practical applications.
-First, the authors will outline the application of a Robust Tube MPC for a simple spring-damper system.
-% @Thomas I have no idea what you actually did
-Next, the authors will implement a tube based SMPC.
+\subsection{Objective}
+This project seeks to determine the feasibility of Tube-Based SMPC in practical applications.
+First, the authors will outline the application of a Robust Tube-based MPC for a simple spring-damper system.
+Next, the authors will implement a Stochastic Tube-based MPC using the SARAH-M algorithm \cite{YANG2024122295}. The SARAH-M algorithm is a variance-reduced stochastic gradient method, and in this project, it is used to solve a scenario-average cost at each time step. The contraint tightening margin for the stochastic method is derived from a Monte Carlo simulation of the closed-loop error dynamics rather than a worst-case bound margin that is used for the robust tube-based MPC. Finally, the two approaches are compared on trajectory tracking performance and per-step computation time.
 Finally, the authors will compare the performance profile of the tube-based SMPC to a Robust Tube MPC.
 
 \section{Technical Background}
@@ -151,8 +151,18 @@ $$\mathbf{U}^* = \underbrace{({\mathcal{M}}^\top W_4 \mathcal{M} + W_3)^{-1} \ma
 This gain matrix is computed once offline, making the nominal MPC step a simple matrix-vector multiplication.
 
 \section{Main Method}
+This section will go over the system model that was implemented, the decomposition of the tube, the robust controller, and the stochastic controller.
 
 \section{Numerical Results}
+\begin{figure}
+    \centering    \includegraphics[width=\textwidth]{runtime_comparison.png}
+    \label{runtime}
+    \caption{Runtime comparison between Robust MPC and Stochastic MPC}
+\end{figure}
+
+The two controllers were simulated ona 300-step pulse reference trajectory (parameters: $f = v = 20$, $\sigma = 5$, $N_{MC} = 20$ trials for SARAH-M). Fig.~\ref{runtime}
+
+
 
 \section{Conclusion}
 SMPC can be a viable alternative to Robust MPC when safety considerations do not require an aggressive treatment of the worst case scenario.
