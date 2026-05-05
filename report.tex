@@ -97,7 +97,7 @@ and the error system, which measures the deviation between the plant and the nom
 By centering an invariant set around the nominal trajectory, the controller ensures that as long as the nominal state is controlled effectively, the true state of the system is guaranteed to remain within the tube boundaries with a certain probability.
 
 \subsection{Robust vs. Stochastic Tubes}
-Traditional Robust Tube MPC assumes worst-case bounded disturbances, which often results in overly conservative control actions.
+Traditional Robust Tube MPC assumes worst-case bounded disturbances, which often results in overly conservative control actions.\cite{dey2026adaptivetubempccommon}
 Stochastic Tube MPC relaxes this in three ways:
 first, by characterizing the probability distribution of the disturbances;
 second, by shrinking the constraints based on a risk budget rather than the maximum possible perturbation;
@@ -113,8 +113,7 @@ Finally, the authors will compare the performance profile of the tube-based SMPC
 \section{Technical Background}
 \subsection{State-Space Equation}
 \begin{figure}
-    \centering
-    \includegraphics[width=\textwidth]{spring_damper_system.png}
+    \centering    \includegraphics[width=\textwidth]{spring_damper_system.png}
     \label{spring-damper-system}
     \caption{Spring-damper system model.}
 \end{figure}
@@ -140,13 +139,27 @@ At each sampling instant $k$, MPC solves the Optimal Control Problem:
 $$\min_{\{u_0, \ldots, u_{N_c-1}\}} \sum_{i=0}^{N_p - 1} \left\| y_{k+i|k} - r_{k+i} \right\|^2_{W_4} + \left\| \Delta u \right\|^2_{W_3}$$
 where $y_{k+i|k}$ is the predicted output $i$ steps ahead, $r_{k+i}$ is the reference trajectory, $W_4$ penalizes tracking error over the prediction horizon $N_p$, $W_3$ penalizes control input increments over the control horizon $N_c$, and $\Delta u$ denotes differences between successive control actions.
 
+For a linear system, the predicted output trajectory over the full prediction horizon can be written compactly as:
+
+$$\mathbf{Y} = \mathcal{O} \mathbf{x}_k + \mathcal{M} \mathbf{U}$$
+
+where $\mathbf{Y} \in \mathbb{R}^{N_p r}$ stacks all predicted outputs, $\mathbf{U} \in \mathbb{R}^{N_c m}$ stacks all future inputs, $\mathcal{O}$ is the observability-like matrix encoding free response contributions from the current state, and $\mathcal{M}$ is the lower-triangular Toeplitz matrix encoding input-to-output impulse responses.
+Substituting this into the cost function and differentiating yields the unconstrained closed-form optimal gain:
+
+$$\mathbf{U}^* = \underbrace{({\mathcal{M}}^\top W_4 \mathcal{M} + W_3)^{-1} \mathcal{M}^\top W_4}_{\text{gain matrix}} \left( \mathbf{R} - \mathcal{O}\mathbf{x}_k \right)$$
+
+This gain matrix is computed once offline, making the nominal MPC step a simple matrix-vector multiplication.
+
 \section{Main Method}
 
 \section{Numerical Results}
 
 \section{Conclusion}
-SMPC can be a viable alternative to Robust MPC 
-
+SMPC can be a viable alternative to Robust MPC when safety considerations do not require an aggressive treatment of the worst case scenario.
+While Robust MPC provides absolute saftey guarantees, it does so at the expense of the performance of the system.
+The core contribution of this study is the empirical validation that higher risk tolerance can be directly translated to operational gain.
+In the simulated scenarios, the SMPC controller achieved a 91.9\% gain in the tube width over the robust controller, primarily because the SMPC can avoid low-probability outlier disturbance events that the robust controller is forced to mitigate.
+However, the convergence time of the SARAH-M algorithm is 45.4\% slower, which is a noteworthy time penalty for systems that require fast convergence times on the order of milliseconds or faster.
 Repository can be found at: https://github.com/nalddox/convex-optimization-project/
 
 \bibliographystyle{IEEEtran}
